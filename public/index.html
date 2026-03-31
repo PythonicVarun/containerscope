@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>ContainerScope - Docker Log Viewer</title>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="/styles.css" />
+    </head>
+    <body>
+        <header>
+            <div class="logo">
+                <div class="logo-mark">
+                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <rect
+                            x="1"
+                            y="4"
+                            width="6"
+                            height="8"
+                            rx="1"
+                            fill="white"
+                            opacity=".9"
+                        ></rect>
+                        <rect
+                            x="9"
+                            y="2"
+                            width="6"
+                            height="5"
+                            rx="1"
+                            fill="white"
+                            opacity=".6"
+                        ></rect>
+                        <rect
+                            x="9"
+                            y="9"
+                            width="6"
+                            height="5"
+                            rx="1"
+                            fill="white"
+                            opacity=".6"
+                        ></rect>
+                    </svg>
+                </div>
+                <div>
+                    <div class="logo-name">ContainerScope</div>
+                    <div class="logo-tag">Docker log viewer</div>
+                </div>
+            </div>
+
+            <div class="hdr-meta">
+                <div class="meta-chip">
+                    <div class="dot-g" id="wsDot"></div>
+                    <span id="wsLabel">Connected</span>
+                </div>
+                <div class="meta-chip">
+                    <span class="num" id="hdrCount">0</span>
+                    <span>containers</span>
+                </div>
+                <div class="meta-chip">
+                    <span class="num" id="hdrLines">0</span>
+                    <span>visible lines</span>
+                </div>
+            </div>
+
+            <div class="hdr-right">
+                <button class="hdr-btn" id="refreshBtn" type="button">
+                    <svg
+                        viewBox="0 0 14 14"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M1 7A6 6 0 1 0 7 1"
+                            stroke-linecap="round"
+                        ></path>
+                        <polyline
+                            points="1,1 1,7 7,7"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        ></polyline>
+                    </svg>
+                    Refresh
+                </button>
+            </div>
+        </header>
+
+        <div class="main">
+            <aside class="sidebar">
+                <div class="sidebar-head">
+                    <div class="sidebar-head-row">
+                        <span class="sidebar-label">Containers</span>
+                        <span class="badge" id="nodeCount">0</span>
+                    </div>
+                </div>
+                <div class="c-list" id="cList">
+                    <div class="loading-row">
+                        <div class="spinner visible"></div>
+                        <span>Loading containers...</span>
+                    </div>
+                </div>
+            </aside>
+
+            <div class="log-panel">
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-icon">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.3"
+                            aria-hidden="true"
+                        >
+                            <rect
+                                x="3"
+                                y="3"
+                                width="7"
+                                height="9"
+                                rx="1"
+                            ></rect>
+                            <rect
+                                x="14"
+                                y="3"
+                                width="7"
+                                height="5"
+                                rx="1"
+                            ></rect>
+                            <rect
+                                x="14"
+                                y="12"
+                                width="7"
+                                height="9"
+                                rx="1"
+                            ></rect>
+                            <rect
+                                x="3"
+                                y="16"
+                                width="7"
+                                height="5"
+                                rx="1"
+                            ></rect>
+                        </svg>
+                    </div>
+                    <div class="empty-title">No container selected</div>
+                    <div class="empty-sub">
+                        Pick a container from the sidebar to start streaming its
+                        logs in real time.
+                    </div>
+                </div>
+
+                <div class="active-view" id="activeView">
+                    <div class="toolbar">
+                        <div class="toolbar-title">
+                            <span class="toolbar-name" id="tbName">-</span>
+                            <span class="toolbar-cid" id="tbId"></span>
+                        </div>
+                        <div class="spinner" id="spinner"></div>
+                        <div class="tb-spacer"></div>
+
+                        <div class="search-wrap">
+                            <svg
+                                viewBox="0 0 14 14"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                aria-hidden="true"
+                            >
+                                <circle cx="6" cy="6" r="4"></circle>
+                                <line
+                                    x1="9.5"
+                                    y1="9.5"
+                                    x2="13"
+                                    y2="13"
+                                    stroke-linecap="round"
+                                ></line>
+                            </svg>
+                            <input
+                                class="search-bar"
+                                type="text"
+                                id="filterInput"
+                                placeholder="Filter logs..."
+                            />
+                        </div>
+
+                        <button class="tb-pill on" id="errBtn" type="button">
+                            <svg
+                                viewBox="0 0 12 12"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                aria-hidden="true"
+                            >
+                                <circle cx="6" cy="6" r="5"></circle>
+                                <line
+                                    x1="6"
+                                    y1="4"
+                                    x2="6"
+                                    y2="6.5"
+                                    stroke-linecap="round"
+                                ></line>
+                                <circle
+                                    cx="6"
+                                    cy="8.5"
+                                    r=".5"
+                                    fill="currentColor"
+                                ></circle>
+                            </svg>
+                            stderr
+                        </button>
+
+                        <button class="tb-pill on" id="followBtn" type="button">
+                            <svg
+                                viewBox="0 0 12 12"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                aria-hidden="true"
+                            >
+                                <polyline
+                                    points="2,4 6,8 10,4"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                ></polyline>
+                            </svg>
+                            Follow
+                        </button>
+
+                        <button class="tb-pill red" id="clearBtn" type="button">
+                            <svg
+                                viewBox="0 0 12 12"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                aria-hidden="true"
+                            >
+                                <polyline points="1,3 11,3"></polyline>
+                                <path d="M5 3V2h2v1"></path>
+                                <rect
+                                    x="2"
+                                    y="3"
+                                    width="8"
+                                    height="8"
+                                    rx="1"
+                                ></rect>
+                            </svg>
+                            Clear
+                        </button>
+                    </div>
+
+                    <div class="log-area">
+                        <div class="log-output" id="logOut"></div>
+                        <button id="scrollBtn" type="button">
+                            <svg
+                                viewBox="0 0 12 12"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                aria-hidden="true"
+                            >
+                                <polyline
+                                    points="2,4 6,8 10,4"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                ></polyline>
+                            </svg>
+                            Jump to latest
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <div class="sb-item">
+                <span>WebSocket</span>
+                <span class="v ws-ok" id="wsStatus">● Live</span>
+            </div>
+            <div class="sb-item">
+                <span>Lines</span>
+                <span class="v" id="sbLines">0</span>
+            </div>
+            <div class="sb-item hidden" id="sbContainer">
+                <span>Viewing</span>
+                <span class="v" id="sbContName">-</span>
+            </div>
+            <div class="sb-item sb-end">ContainerScope</div>
+        </footer>
+
+        <script src="/app.js"></script>
+    </body>
+</html>

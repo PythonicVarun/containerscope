@@ -1,0 +1,11 @@
+services:
+    containerscope:
+        image: ghcr.io/PythonicVarun/containerscope:latest
+        container_name: containerscope
+        restart: unless-stopped
+        ports:
+            - "${CONTAINERSCOPE_HOST_PORT:-4000}:4000"
+        environment:
+            CONTAINER_SCOPE_PORT: "4000"
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
