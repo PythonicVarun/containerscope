@@ -390,7 +390,7 @@
                     try {
                         const parsed = new URL(url, window.location.origin);
                         if (parsed.origin === window.location.origin) {
-                            return parsed.pathname + parsed.hash;
+                            return parsed.pathname + parsed.search;
                         }
                     } catch (e) {
                         // Invalid URL

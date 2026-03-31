@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -206,7 +207,13 @@ func NewHandler(publicDir string, docker *dockerapi.Client, authManager *auth.Ma
 		// Protected: main app requires authentication
 		if _, err := authManager.GetSessionFromRequest(r); err != nil {
 			// Redirect to login page
-			http.Redirect(w, r, "/login", http.StatusFound)
+			nextURL := r.URL.Path
+			if r.URL.RawQuery != "" {
+				nextURL += "?" + r.URL.RawQuery
+			}
+
+			redirectURL := "/login?next=" + url.QueryEscape(nextURL)
+			http.Redirect(w, r, redirectURL, http.StatusFound)
 			return
 		}
 

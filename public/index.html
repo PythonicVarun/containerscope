@@ -398,6 +398,33 @@
             <div class="sb-item sb-end">ContainerScope</div>
         </footer>
 
+        <!-- Confirmation Dialog -->
+        <div class="modal-overlay" id="confirmModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <span class="modal-icon" id="modalIcon"></span>
+                    <h3 class="modal-title" id="modalTitle">Confirm Action</h3>
+                </div>
+                <p class="modal-message" id="modalMessage">Are you sure?</p>
+                <div class="modal-actions">
+                    <button
+                        class="modal-btn cancel"
+                        id="modalCancel"
+                        type="button"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        class="modal-btn confirm"
+                        id="modalConfirm"
+                        type="button"
+                    >
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <script src="/app.js"></script>
     </body>
 </html>

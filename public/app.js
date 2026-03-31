@@ -25,21 +25,21 @@
         bindEvents();
         connectWS();
         await loadContainers();
-        restoreFromHash();
+        restoreFromParams();
         window.setInterval(loadContainers, 15000);
-        window.addEventListener("hashchange", restoreFromHash);
     }
 
-    function restoreFromHash() {
-        const hash = window.location.hash.slice(1);
-        if (!hash || hash === state.activeId) return;
+    function restoreFromParams() {
+        const params = new URLSearchParams(window.location.search);
+        const containerId = params.get("container");
+        if (!containerId || containerId === state.activeId) return;
 
         const item = document.querySelector(
-            `.c-item[data-id="${CSS.escape(hash)}"]`,
+            `.c-item[data-id="${CSS.escape(containerId)}"]`,
         );
         if (item) {
             const name = item.querySelector(".c-name")?.textContent || "";
-            selectContainer(hash, name);
+            selectContainer(containerId, name);
         }
     }
 
@@ -53,10 +53,10 @@
     }
 
     function redirectToLogin() {
-        const currentUrl = window.location.pathname + window.location.hash;
-        const next =
-            currentUrl !== "/" ? `?next=${encodeURIComponent(currentUrl)}` : "";
-        window.location.href = `/login${next}`;
+        const currentUrl = window.location.pathname + window.location.search;
+        window.location.replace(
+            "/login?next=" + encodeURIComponent(currentUrl || "/"),
+        );
     }
 
     function cacheElements() {
@@ -89,6 +89,12 @@
         elements.menuToggle = document.getElementById("menuToggle");
         elements.sidebar = document.getElementById("sidebar");
         elements.sidebarOverlay = document.getElementById("sidebarOverlay");
+        elements.confirmModal = document.getElementById("confirmModal");
+        elements.modalIcon = document.getElementById("modalIcon");
+        elements.modalTitle = document.getElementById("modalTitle");
+        elements.modalMessage = document.getElementById("modalMessage");
+        elements.modalCancel = document.getElementById("modalCancel");
+        elements.modalConfirm = document.getElementById("modalConfirm");
     }
 
     function bindEvents() {
@@ -102,17 +108,87 @@
         elements.startBtn.addEventListener("click", () =>
             containerAction("start"),
         );
-        elements.stopBtn.addEventListener("click", () =>
-            containerAction("stop"),
-        );
+        elements.stopBtn.addEventListener("click", () => confirmAction("stop"));
         elements.restartBtn.addEventListener("click", () =>
-            containerAction("restart"),
+            confirmAction("restart"),
         );
-        elements.logoutBtn.addEventListener("click", logout);
+        elements.logoutBtn.addEventListener("click", () =>
+            confirmAction("logout"),
+        );
 
         // Mobile sidebar toggle
         elements.menuToggle.addEventListener("click", toggleSidebar);
         elements.sidebarOverlay.addEventListener("click", closeSidebar);
+
+        // Modal events
+        elements.modalCancel.addEventListener("click", closeModal);
+        elements.confirmModal.addEventListener("click", (e) => {
+            if (e.target === elements.confirmModal) closeModal();
+        });
+    }
+
+    let pendingAction = null;
+
+    function confirmAction(action) {
+        if (action !== "logout" && !state.activeId) return;
+
+        pendingAction = action;
+        const containerName = state.activeName || "this container";
+
+        const config = {
+            stop: {
+                title: "Stop Container",
+                message: `Are you sure you want to stop "${containerName}"? Any running processes will be terminated.`,
+                icon: "stop",
+                iconSvg:
+                    '<svg viewBox="0 0 12 12" fill="currentColor"><rect x="1" y="1" width="10" height="10" rx="1"></rect></svg>',
+                btnText: "Stop",
+            },
+            restart: {
+                title: "Restart Container",
+                message: `Are you sure you want to restart "${containerName}"? The container will be stopped and started again.`,
+                icon: "restart",
+                iconSvg:
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 13.5C19 17.6421 15.6421 21 11.5 21C7.35786 21 4 17.6421 4 13.5C4 9.35786 7.35786 6 11.5 6H20M20 6L17 3M20 6L17 9" stroke-linecap="round" stroke-linejoin="round"></path></svg>',
+                btnText: "Restart",
+            },
+            logout: {
+                title: "Logout",
+                message:
+                    "Are you sure you want to logout? You will need to sign in again to access the dashboard.",
+                icon: "stop",
+                iconSvg:
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke-linecap="round" stroke-linejoin="round"></path></svg>',
+                btnClass: "",
+                btnText: "Logout",
+            },
+        };
+
+        const cfg = config[action];
+        elements.modalIcon.className = `modal-icon ${cfg.icon}`;
+        elements.modalIcon.innerHTML = cfg.iconSvg;
+        elements.modalTitle.textContent = cfg.title;
+        elements.modalMessage.textContent = cfg.message;
+        elements.modalConfirm.className = `modal-btn confirm ${action === "restart" ? "restart" : ""}`;
+        elements.modalConfirm.textContent = cfg.btnText;
+        elements.modalConfirm.onclick = executeConfirmedAction;
+        elements.confirmModal.classList.add("visible");
+    }
+
+    function executeConfirmedAction() {
+        if (pendingAction) {
+            if (pendingAction === "logout") {
+                logout();
+            } else {
+                containerAction(pendingAction);
+            }
+            closeModal();
+        }
+    }
+
+    function closeModal() {
+        elements.confirmModal.classList.remove("visible");
+        pendingAction = null;
     }
 
     function toggleSidebar() {
@@ -186,11 +262,11 @@
 
     function renderLoadingState() {
         elements.cList.innerHTML = `
-      <div class="loading-row">
-        <div class="spinner visible"></div>
-        <span>Loading containers...</span>
-      </div>
-    `;
+        <div class="loading-row">
+            <div class="spinner visible"></div>
+            <span>Loading containers...</span>
+        </div>
+        `;
     }
 
     function renderContainers(containers) {
@@ -210,16 +286,16 @@
             item.dataset.id = container.fullId;
             item.style.animationDelay = `${index * 40}ms`;
             item.innerHTML = `
-        <div class="c-row1">
-          <div class="c-status ${container.state === "running" ? "" : "stopped"}"></div>
-          <div class="c-name">${escapeHTML(container.name)}</div>
-          <div class="c-live">LIVE</div>
-        </div>
-        <div class="c-row2">
-          <div class="c-image">${escapeHTML(container.image)}</div>
-          <div class="c-id">${escapeHTML(container.id)}</div>
-        </div>
-      `;
+                <div class="c-row1">
+                <div class="c-status ${container.state === "running" ? "" : "stopped"}"></div>
+                <div class="c-name">${escapeHTML(container.name)}</div>
+                <div class="c-live">LIVE</div>
+                </div>
+                <div class="c-row2">
+                <div class="c-image">${escapeHTML(container.image)}</div>
+                <div class="c-id">${escapeHTML(container.id)}</div>
+                </div>
+            `;
             item.addEventListener("click", () =>
                 selectContainer(container.fullId, container.name),
             );
@@ -236,8 +312,10 @@
         state.allLogs = [];
         state.lineIndex = 0;
 
-        // Update URL hash for persistence
-        history.replaceState(null, "", `#${id}`);
+        // Update URL query param for persistence
+        const url = new URL(window.location);
+        url.searchParams.set("container", id);
+        history.replaceState(null, "", url);
 
         document.querySelectorAll(".c-item").forEach((item) => {
             item.classList.toggle("active", item.dataset.id === id);
