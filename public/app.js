@@ -17,7 +17,7 @@
     async function init() {
         // Check authentication first
         if (!(await checkAuth())) {
-            window.location.href = "/login";
+            redirectToLogin();
             return;
         }
 
@@ -50,6 +50,13 @@
         } catch (error) {
             return false;
         }
+    }
+
+    function redirectToLogin() {
+        const currentUrl = window.location.pathname + window.location.hash;
+        const next =
+            currentUrl !== "/" ? `?next=${encodeURIComponent(currentUrl)}` : "";
+        window.location.href = `/login${next}`;
     }
 
     function cacheElements() {
@@ -453,7 +460,7 @@
 
         // Handle authentication errors
         if (response.status === 401) {
-            window.location.href = "/login";
+            redirectToLogin();
             throw new Error("Session expired");
         }
 

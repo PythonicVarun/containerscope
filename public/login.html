@@ -375,6 +375,30 @@
                 const usernameInput = document.getElementById("username");
                 const passwordInput = document.getElementById("password");
 
+                // Get redirect URL from query parameter with validation
+                const params = new URLSearchParams(window.location.search);
+                const nextUrl = getSafeRedirectUrl(params.get("next"));
+
+                function getSafeRedirectUrl(url) {
+                    if (!url) return "/";
+
+                    if (url.startsWith("/") && !url.startsWith("//")) {
+                        return url;
+                    }
+
+                    // Check if same origin
+                    try {
+                        const parsed = new URL(url, window.location.origin);
+                        if (parsed.origin === window.location.origin) {
+                            return parsed.pathname + parsed.hash;
+                        }
+                    } catch (e) {
+                        // Invalid URL
+                    }
+
+                    return "/";
+                }
+
                 // Check if already authenticated
                 checkAuth();
 
@@ -387,7 +411,7 @@
                     try {
                         const response = await fetch("/api/auth/check");
                         if (response.ok) {
-                            window.location.href = "/";
+                            window.location.href = nextUrl;
                         }
                     } catch (error) {
                         // Not authenticated, stay on login page
@@ -419,7 +443,7 @@
                         const data = await response.json();
 
                         if (response.ok) {
-                            window.location.href = "/";
+                            window.location.href = nextUrl;
                         } else if (response.status === 429) {
                             const retryAfter = data.retry_after || 60;
                             showError(
