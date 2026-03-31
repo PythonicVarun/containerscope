@@ -2,7 +2,7 @@ ARG GO_VERSION=1.26
 
 FROM golang:${GO_VERSION}-alpine AS build
 WORKDIR /src
-COPY go.mod ./
+COPY go.mod go.sum ./
 COPY cmd ./cmd
 COPY internal ./internal
 COPY public ./public
@@ -21,6 +21,8 @@ LABEL org.opencontainers.image.title="ContainerScope" \
 
 WORKDIR /app
 ENV CONTAINER_SCOPE_PORT=4000
+ENV CONTAINER_SCOPE_USERNAME=admin
+# CONTAINER_SCOPE_PASSWORD must be set at runtime
 COPY --from=build /out/containerscope /app/containerscope
 COPY public /app/public
 EXPOSE 4000

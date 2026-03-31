@@ -201,6 +201,22 @@ header {
     height: 13px;
 }
 
+.hdr-right {
+    display: flex;
+    gap: 8px;
+}
+
+.logout-btn {
+    color: var(--red);
+    border-color: rgba(244, 63, 94, 0.2);
+}
+
+.logout-btn:hover {
+    background: var(--red-dim);
+    border-color: rgba(244, 63, 94, 0.4);
+    color: var(--red);
+}
+
 .main {
     display: flex;
     flex: 1;

@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Login - ContainerScope</title>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            :root {
+                --bg-dark: #0a0a0f;
+                --bg-card: #12121a;
+                --bg-input: #1a1a24;
+                --border: #2a2a3a;
+                --border-focus: #4a4a6a;
+                --text: #e4e4e7;
+                --text-dim: #71717a;
+                --accent: #6366f1;
+                --accent-hover: #818cf8;
+                --error: #ef4444;
+                --error-bg: rgba(239, 68, 68, 0.1);
+            }
+
+            html,
+            body {
+                height: 100%;
+            }
+
+            body {
+                font-family: "DM Sans", system-ui, sans-serif;
+                background: var(--bg-dark);
+                color: var(--text);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 1rem;
+            }
+
+            .login-container {
+                width: 100%;
+                max-width: 400px;
+            }
+
+            .login-card {
+                background: var(--bg-card);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                padding: 2.5rem;
+            }
+
+            .logo {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 2rem;
+                justify-content: center;
+            }
+
+            .logo-mark {
+                width: 40px;
+                height: 40px;
+                background: linear-gradient(135deg, var(--accent), #8b5cf6);
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .logo-mark svg {
+                width: 24px;
+                height: 24px;
+            }
+
+            .logo-text {
+                font-size: 1.5rem;
+                font-weight: 600;
+            }
+
+            .login-title {
+                text-align: center;
+                font-size: 1.25rem;
+                font-weight: 500;
+                margin-bottom: 0.5rem;
+            }
+
+            .login-subtitle {
+                text-align: center;
+                font-size: 0.875rem;
+                color: var(--text-dim);
+                margin-bottom: 2rem;
+            }
+
+            .form-group {
+                margin-bottom: 1.25rem;
+            }
+
+            .form-label {
+                display: block;
+                font-size: 0.875rem;
+                font-weight: 500;
+                margin-bottom: 0.5rem;
+                color: var(--text-dim);
+            }
+
+            .form-input {
+                width: 100%;
+                padding: 0.75rem 1rem;
+                font-size: 1rem;
+                font-family: inherit;
+                color: var(--text);
+                background: var(--bg-input);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                outline: none;
+                transition:
+                    border-color 0.2s,
+                    box-shadow 0.2s;
+            }
+
+            .form-input:focus {
+                border-color: var(--accent);
+                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+            }
+
+            .form-input::placeholder {
+                color: var(--text-dim);
+            }
+
+            .error-message {
+                display: none;
+                padding: 0.75rem 1rem;
+                background: var(--error-bg);
+                border: 1px solid var(--error);
+                border-radius: 8px;
+                color: var(--error);
+                font-size: 0.875rem;
+                margin-bottom: 1.25rem;
+            }
+
+            .error-message.visible {
+                display: block;
+            }
+
+            .submit-btn {
+                width: 100%;
+                padding: 0.875rem 1rem;
+                font-size: 1rem;
+                font-weight: 500;
+                font-family: inherit;
+                color: white;
+                background: var(--accent);
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                transition:
+                    background 0.2s,
+                    transform 0.1s;
+            }
+
+            .submit-btn:hover {
+                background: var(--accent-hover);
+            }
+
+            .submit-btn:active {
+                transform: scale(0.98);
+            }
+
+            .submit-btn:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+            }
+
+            .submit-btn.loading {
+                position: relative;
+                color: transparent;
+            }
+
+            .submit-btn.loading::after {
+                content: "";
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 20px;
+                height: 20px;
+                margin: -10px 0 0 -10px;
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                border-top-color: white;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            }
+
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .footer-text {
+                text-align: center;
+                font-size: 0.75rem;
+                color: var(--text-dim);
+                margin-top: 1.5rem;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="login-container">
+            <div class="login-card">
+                <div class="logo">
+                    <div class="logo-mark">
+                        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <rect
+                                x="1"
+                                y="4"
+                                width="6"
+                                height="8"
+                                rx="1"
+                                fill="white"
+                                opacity=".9"
+                            ></rect>
+                            <rect
+                                x="9"
+                                y="2"
+                                width="6"
+                                height="5"
+                                rx="1"
+                                fill="white"
+                                opacity=".6"
+                            ></rect>
+                            <rect
+                                x="9"
+                                y="9"
+                                width="6"
+                                height="5"
+                                rx="1"
+                                fill="white"
+                                opacity=".6"
+                            ></rect>
+                        </svg>
+                    </div>
+                    <span class="logo-text">ContainerScope</span>
+                </div>
+
+                <h1 class="login-title">Welcome back</h1>
+                <p class="login-subtitle">
+                    Sign in to access your container dashboard
+                </p>
+
+                <div class="error-message" id="errorMessage"></div>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label class="form-label" for="username"
+                            >Username</label
+                        >
+                        <input
+                            class="form-input"
+                            type="text"
+                            id="username"
+                            name="username"
+                            placeholder="Enter your username"
+                            autocomplete="username"
+                            required
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="password"
+                            >Password</label
+                        >
+                        <input
+                            class="form-input"
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Enter your password"
+                            autocomplete="current-password"
+                            required
+                        />
+                    </div>
+
+                    <button class="submit-btn" type="submit" id="submitBtn">
+                        Sign in
+                    </button>
+                </form>
+
+                <p class="footer-text">
+                    <a
+                        href="https://github.com/PythonicVarun/containerscope"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style="color: var(--accent); text-decoration: none"
+                    >
+                        ContainerScope - Docker Log Viewer
+                    </a>
+                </p>
+            </div>
+        </div>
+
+        <script>
+            (function () {
+                const form = document.getElementById("loginForm");
+                const submitBtn = document.getElementById("submitBtn");
+                const errorMessage = document.getElementById("errorMessage");
+                const usernameInput = document.getElementById("username");
+                const passwordInput = document.getElementById("password");
+
+                // Check if already authenticated
+                checkAuth();
+
+                form.addEventListener("submit", async (e) => {
+                    e.preventDefault();
+                    await login();
+                });
+
+                async function checkAuth() {
+                    try {
+                        const response = await fetch("/api/auth/check");
+                        if (response.ok) {
+                            window.location.href = "/";
+                        }
+                    } catch (error) {
+                        // Not authenticated, stay on login page
+                    }
+                }
+
+                async function login() {
+                    const username = usernameInput.value.trim();
+                    const password = passwordInput.value;
+
+                    if (!username || !password) {
+                        showError("Please enter both username and password");
+                        return;
+                    }
+
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add("loading");
+                    hideError();
+
+                    try {
+                        const response = await fetch("/api/login", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({ username, password }),
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            window.location.href = "/";
+                        } else if (response.status === 429) {
+                            const retryAfter = data.retry_after || 60;
+                            showError(
+                                `Too many failed attempts. Please try again in ${Math.ceil(retryAfter / 60)} minute(s).`,
+                            );
+                        } else {
+                            showError(data.error || "Invalid credentials");
+                            passwordInput.value = "";
+                            passwordInput.focus();
+                        }
+                    } catch (error) {
+                        showError("Connection error. Please try again.");
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove("loading");
+                    }
+                }
+
+                function showError(message) {
+                    errorMessage.textContent = message;
+                    errorMessage.classList.add("visible");
+                }
+
+                function hideError() {
+                    errorMessage.classList.remove("visible");
+                }
+            })();
+        </script>
+    </body>
+</html>

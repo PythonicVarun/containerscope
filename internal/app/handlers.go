@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"containerscope/internal/auth"
 	"containerscope/internal/dockerapi"
 	"containerscope/internal/ws"
 )
@@ -16,11 +17,81 @@ type logsResponse struct {
 	Logs []dockerapi.LogLine `json:"logs"`
 }
 
-func NewHandler(publicDir string, docker *dockerapi.Client) http.Handler {
+type loginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func NewHandler(publicDir string, docker *dockerapi.Client, authManager *auth.Manager, rateLimiter *auth.RateLimiter, secureCookies bool) http.Handler {
 	fileServer := http.FileServer(http.Dir(publicDir))
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/api/containers", func(w http.ResponseWriter, r *http.Request) {
+	// Auth endpoints (public)
+	mux.HandleFunc("/api/login", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		clientIP := auth.GetClientIP(r)
+
+		// Check rate limiting
+		if locked, remaining := rateLimiter.IsLocked(clientIP); locked {
+			writeJSON(w, http.StatusTooManyRequests, map[string]any{
+				"error":       "too many failed login attempts",
+				"retry_after": int(remaining.Seconds()),
+			})
+			return
+		}
+
+		var req loginRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		token, err := authManager.Login(req.Username, req.Password)
+		if err != nil {
+			rateLimiter.RecordFailure(clientIP)
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
+			return
+		}
+
+		rateLimiter.RecordSuccess(clientIP)
+		authManager.SetSessionCookie(w, token, secureCookies)
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	})
+
+	mux.HandleFunc("/api/logout", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		if cookie, err := r.Cookie(auth.SessionCookieName); err == nil {
+			authManager.Logout(cookie.Value)
+		}
+
+		authManager.ClearSessionCookie(w)
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	})
+
+	mux.HandleFunc("/api/auth/check", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		if _, err := authManager.GetSessionFromRequest(r); err != nil {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"authenticated": "false"})
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]string{"authenticated": "true"})
+	})
+
+	// Protected API endpoints
+	mux.HandleFunc("/api/containers", authManager.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -33,9 +104,9 @@ func NewHandler(publicDir string, docker *dockerapi.Client) http.Handler {
 		}
 
 		writeJSON(w, http.StatusOK, containers)
-	})
+	}))
 
-	mux.HandleFunc("/api/containers/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/containers/", authManager.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -69,9 +140,9 @@ func NewHandler(publicDir string, docker *dockerapi.Client) http.Handler {
 		}
 
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-	})
+	}))
 
-	mux.HandleFunc("/api/logs/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/logs/", authManager.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -99,9 +170,16 @@ func NewHandler(publicDir string, docker *dockerapi.Client) http.Handler {
 		writeJSON(w, http.StatusOK, logsResponse{
 			Logs: dockerapi.ParseHistory(data, stream.TTY),
 		})
-	})
+	}))
 
+	// WebSocket endpoint (protected)
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		// Validate session before upgrading WebSocket connection
+		if _, err := authManager.GetSessionFromRequest(r); err != nil {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
 		conn, err := ws.Upgrade(w, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -111,7 +189,27 @@ func NewHandler(publicDir string, docker *dockerapi.Client) http.Handler {
 		ws.NewSession(conn, docker).Run()
 	})
 
+	// Static files and login page
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Serve login page without auth
+		if r.URL.Path == "/login" || r.URL.Path == "/login.html" {
+			http.ServeFile(w, r, filepath.Join(publicDir, "login.html"))
+			return
+		}
+
+		// Static assets (CSS, JS, images) are public
+		if isStaticAsset(r.URL.Path) {
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		// Protected: main app requires authentication
+		if _, err := authManager.GetSessionFromRequest(r); err != nil {
+			// Redirect to login page
+			http.Redirect(w, r, "/login", http.StatusFound)
+			return
+		}
+
 		if r.URL.Path == "/" {
 			http.ServeFile(w, r, filepath.Join(publicDir, "index.html"))
 			return
@@ -120,6 +218,16 @@ func NewHandler(publicDir string, docker *dockerapi.Client) http.Handler {
 	})
 
 	return mux
+}
+
+func isStaticAsset(path string) bool {
+	staticExtensions := []string{".css", ".js", ".svg", ".png", ".ico", ".woff", ".woff2", ".ttf"}
+	for _, ext := range staticExtensions {
+		if strings.HasSuffix(path, ext) {
+			return true
+		}
+	}
+	return false
 }
 
 func resourceID(path, prefix string) (string, bool) {

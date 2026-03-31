@@ -14,12 +14,27 @@
 
     window.addEventListener("DOMContentLoaded", init);
 
-    function init() {
+    async function init() {
+        // Check authentication first
+        if (!(await checkAuth())) {
+            window.location.href = "/login";
+            return;
+        }
+
         cacheElements();
         bindEvents();
         connectWS();
         loadContainers();
         window.setInterval(loadContainers, 15000);
+    }
+
+    async function checkAuth() {
+        try {
+            const response = await fetch("/api/auth/check");
+            return response.ok;
+        } catch (error) {
+            return false;
+        }
     }
 
     function cacheElements() {
@@ -48,6 +63,7 @@
         elements.wsDot = document.getElementById("wsDot");
         elements.wsLabel = document.getElementById("wsLabel");
         elements.wsStatus = document.getElementById("wsStatus");
+        elements.logoutBtn = document.getElementById("logoutBtn");
     }
 
     function bindEvents() {
@@ -67,6 +83,16 @@
         elements.restartBtn.addEventListener("click", () =>
             containerAction("restart"),
         );
+        elements.logoutBtn.addEventListener("click", logout);
+    }
+
+    async function logout() {
+        try {
+            await fetch("/api/logout", { method: "POST" });
+        } catch (error) {
+            console.error("Logout error:", error);
+        }
+        window.location.href = "/login";
     }
 
     function connectWS() {
@@ -384,6 +410,13 @@
 
     async function fetchJSON(url) {
         const response = await fetch(url);
+
+        // Handle authentication errors
+        if (response.status === 401) {
+            window.location.href = "/login";
+            throw new Error("Session expired");
+        }
+
         const text = await response.text();
 
         let data = null;

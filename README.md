@@ -15,7 +15,8 @@ A lightweight, real-time Docker container log viewer with a modern web interface
 - 🎯 **Follow mode** to auto-scroll to latest logs
 - 🖥️ **Clean, modern UI** with dark theme
 - ⚡ **Lightweight** - single binary, minimal footprint
-- 🔒 **Read-only** access to Docker socket
+- 🔒 **Secure authentication** with session-based login
+- 🛡️ **Rate limiting** to prevent brute force attacks
 
 ## Quick Start
 
@@ -26,10 +27,14 @@ docker run -d \
   --name containerscope \
   -p 4000:4000 \
   -v /var/run/docker.sock:/var/run/docker.sock:ro \
+  -e CONTAINER_SCOPE_PASSWORD=your_secure_password \
   containerscope:latest
 ```
 
-Then open [http://localhost:4000](http://localhost:4000) in your browser.
+Then open [http://localhost:4000](http://localhost:4000) and login with:
+
+- **Username:** `admin` (default)
+- **Password:** your configured password
 
 ### Using Docker Compose
 
@@ -45,6 +50,9 @@ services:
             - /var/run/docker.sock:/var/run/docker.sock:ro
         environment:
             - CONTAINER_SCOPE_PORT=4000
+            - CONTAINER_SCOPE_USERNAME=admin
+            - CONTAINER_SCOPE_PASSWORD=your_secure_password
+            - CONTAINER_SCOPE_SECURE_COOKIES=false # Set to true if using HTTPS
 ```
 
 ```bash
@@ -65,15 +73,18 @@ cd containerscope
 # Build the binary
 go build -o containerscope ./cmd/containerscope
 
-# Run (requires access to Docker socket)
-./containerscope
+# Run (requires access to Docker socket and password)
+CONTAINER_SCOPE_PASSWORD=your_secure_password ./containerscope
 ```
 
 ## Configuration
 
-| Environment Variable   | Default | Description      |
-| ---------------------- | ------- | ---------------- |
-| `CONTAINER_SCOPE_PORT` | `4000`  | HTTP server port |
+| Environment Variable             | Default    | Description                    |
+| -------------------------------- | ---------- | ------------------------------ |
+| `CONTAINER_SCOPE_PORT`           | `4000`     | HTTP server port               |
+| `CONTAINER_SCOPE_USERNAME`       | `admin`    | Login username                 |
+| `CONTAINER_SCOPE_PASSWORD`       | _required_ | Login password (must be set)   |
+| `CONTAINER_SCOPE_SECURE_COOKIES` | `false`    | Set to `true` when using HTTPS |
 
 ## Architecture
 
@@ -82,21 +93,35 @@ containerscope/
 ├── cmd/containerscope/    # Application entry point
 ├── internal/
 │   ├── app/               # HTTP server and handlers
+│   ├── auth/              # Authentication and session management
 │   ├── dockerapi/         # Docker API client
 │   └── ws/                # WebSocket handling
 └── public/                # Static web UI assets
 ```
 
+## Authentication
+
+ContainerScope uses secure session-based authentication:
+
+- **Session cookies:** HttpOnly, SameSite=Strict, optional Secure flag
+- **Password hashing:** bcrypt with cost 10
+- **Session tokens:** 32 bytes of cryptographically secure random data
+- **Session expiry:** 24 hours
+- **Rate limiting:** 5 failed attempts trigger 15-minute lockout
+
+All API endpoints and WebSocket connections require authentication. The login page is the only publicly accessible route.
+
 ## Usage
 
 1. **Start ContainerScope** using one of the methods above
-2. **Open the web UI** at `http://localhost:4000`
+2. **Login** at the authentication page `http://localhost:4000`
 3. **Select a container** from the sidebar to view its logs
 4. **Use the toolbar** to:
     - Filter logs with the search bar
     - Toggle stderr visibility
     - Enable/disable follow mode
     - Clear the log buffer
+5. **Logout** using the button in the header when done
 
 ## Security Considerations
 
@@ -105,7 +130,11 @@ ContainerScope requires read-only access to the Docker socket (`/var/run/docker.
 - List running containers
 - Stream container logs
 
-**Important:** The Docker socket provides access to the Docker daemon. Only run ContainerScope in trusted environments.
+**Important:**
+
+- The Docker socket provides access to the Docker daemon. Only run ContainerScope in trusted environments.
+- Always set a strong password for the `CONTAINER_SCOPE_PASSWORD` environment variable.
+- Enable `CONTAINER_SCOPE_SECURE_COOKIES=true` when deploying behind HTTPS.
 
 ## Contributing
 

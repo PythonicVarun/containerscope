@@ -12,3 +12,6 @@ services:
             - /var/run/docker.sock:/var/run/docker.sock:ro
         environment:
             - CONTAINER_SCOPE_PORT=4000
+            - CONTAINER_SCOPE_USERNAME=${CONTAINER_SCOPE_USERNAME:-admin}
+            - CONTAINER_SCOPE_PASSWORD=${CONTAINER_SCOPE_PASSWORD}
+            - CONTAINER_SCOPE_SECURE_COOKIES=${CONTAINER_SCOPE_SECURE_COOKIES:-true}
