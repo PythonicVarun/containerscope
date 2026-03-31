@@ -64,6 +64,9 @@
         elements.wsLabel = document.getElementById("wsLabel");
         elements.wsStatus = document.getElementById("wsStatus");
         elements.logoutBtn = document.getElementById("logoutBtn");
+        elements.menuToggle = document.getElementById("menuToggle");
+        elements.sidebar = document.getElementById("sidebar");
+        elements.sidebarOverlay = document.getElementById("sidebarOverlay");
     }
 
     function bindEvents() {
@@ -84,6 +87,22 @@
             containerAction("restart"),
         );
         elements.logoutBtn.addEventListener("click", logout);
+
+        // Mobile sidebar toggle
+        elements.menuToggle.addEventListener("click", toggleSidebar);
+        elements.sidebarOverlay.addEventListener("click", closeSidebar);
+    }
+
+    function toggleSidebar() {
+        const isOpen = elements.sidebar.classList.toggle("open");
+        elements.sidebarOverlay.classList.toggle("visible", isOpen);
+        document.body.style.overflow = isOpen ? "hidden" : "";
+    }
+
+    function closeSidebar() {
+        elements.sidebar.classList.remove("open");
+        elements.sidebarOverlay.classList.remove("visible");
+        document.body.style.overflow = "";
     }
 
     async function logout() {
@@ -187,6 +206,9 @@
     }
 
     async function selectContainer(id, name) {
+        // Close sidebar on mobile after selection
+        closeSidebar();
+
         state.activeId = id;
         state.activeName = name;
         state.allLogs = [];

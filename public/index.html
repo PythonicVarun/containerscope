@@ -15,6 +15,42 @@
     </head>
     <body>
         <header>
+            <button
+                class="menu-toggle"
+                id="menuToggle"
+                type="button"
+                aria-label="Toggle sidebar"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                >
+                    <line
+                        x1="3"
+                        y1="6"
+                        x2="21"
+                        y2="6"
+                        stroke-linecap="round"
+                    ></line>
+                    <line
+                        x1="3"
+                        y1="12"
+                        x2="21"
+                        y2="12"
+                        stroke-linecap="round"
+                    ></line>
+                    <line
+                        x1="3"
+                        y1="18"
+                        x2="21"
+                        y2="18"
+                        stroke-linecap="round"
+                    ></line>
+                </svg>
+            </button>
             <div class="logo">
                 <div class="logo-mark">
                     <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -105,7 +141,8 @@
         </header>
 
         <div class="main">
-            <aside class="sidebar">
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-head">
                     <div class="sidebar-head-row">
                         <span class="sidebar-label">Containers</span>
@@ -280,7 +317,7 @@
                                     fill="currentColor"
                                 ></circle>
                             </svg>
-                            stderr
+                            <span>stderr</span>
                         </button>
 
                         <button class="tb-pill on" id="followBtn" type="button">
@@ -297,7 +334,7 @@
                                     stroke-linejoin="round"
                                 ></polyline>
                             </svg>
-                            Follow
+                            <span>Follow</span>
                         </button>
 
                         <button class="tb-pill red" id="clearBtn" type="button">
@@ -318,7 +355,7 @@
                                     rx="1"
                                 ></rect>
                             </svg>
-                            Clear
+                            <span>Clear</span>
                         </button>
                     </div>
 

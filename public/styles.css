@@ -876,3 +876,404 @@ footer {
         opacity: 1;
     }
 }
+
+/* Mobile menu toggle button */
+.menu-toggle {
+    display: none;
+    width: 36px;
+    height: 36px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.18s;
+}
+
+.menu-toggle:hover {
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+}
+
+.menu-toggle svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Sidebar overlay for mobile */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 199;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+}
+
+.sidebar-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Responsive: Tablet (768px - 1024px) */
+@media (max-width: 1024px) {
+    :root {
+        --sidebar-w: 240px;
+    }
+
+    .hdr-meta {
+        gap: 4px;
+    }
+
+    .meta-chip {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+
+    .toolbar {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 10px 12px;
+        gap: 6px;
+    }
+
+    .toolbar-title {
+        padding-right: 10px;
+        margin-right: 2px;
+    }
+
+    .toolbar-name {
+        font-size: 13px;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .search-bar {
+        width: 160px;
+    }
+
+    .search-bar:focus {
+        width: 180px;
+    }
+
+    .ll-ts {
+        display: none;
+    }
+
+    .log-line {
+        padding: 1.5px 12px;
+    }
+
+    .ll-lnum {
+        min-width: 36px;
+        padding-right: 10px;
+        margin-right: 10px;
+    }
+}
+
+/* Responsive: Mobile (max-width: 768px) */
+@media (max-width: 768px) {
+    :root {
+        --header-h: 52px;
+        --footer-h: 32px;
+        --sidebar-w: 280px;
+    }
+
+    .menu-toggle {
+        display: flex;
+        margin-right: 12px;
+    }
+
+    .logo {
+        padding-right: 12px;
+        margin-right: 12px;
+    }
+
+    .logo-name {
+        font-size: 14px;
+    }
+
+    .logo-tag {
+        display: none;
+    }
+
+    .hdr-meta {
+        display: none;
+    }
+
+    .hdr-right {
+        gap: 6px;
+    }
+
+    .hdr-btn {
+        height: 32px;
+        padding: 0 10px;
+        font-size: 11px;
+    }
+
+    .hdr-btn span {
+        display: none;
+    }
+
+    /* Slide-out sidebar */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: var(--sidebar-w);
+        z-index: 200;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    .sidebar-overlay {
+        display: block;
+    }
+
+    .main {
+        flex-direction: column;
+    }
+
+    .log-panel {
+        width: 100%;
+    }
+
+    /* Toolbar adjustments */
+    .toolbar {
+        padding: 8px 10px;
+        gap: 6px;
+    }
+
+    .toolbar-title {
+        flex: 1;
+        border-right: none;
+        padding-right: 0;
+        margin-right: 0;
+        min-width: 0;
+    }
+
+    .toolbar-name {
+        font-size: 12px;
+        max-width: none;
+        flex: 1;
+    }
+
+    .toolbar-cid {
+        display: none;
+    }
+
+    .container-actions {
+        padding: 0;
+        border-right: none;
+        margin-right: 0;
+    }
+
+    .tb-spacer {
+        display: none;
+    }
+
+    .search-wrap {
+        width: 100%;
+        order: 10;
+    }
+
+    .search-bar {
+        width: 100%;
+    }
+
+    .search-bar:focus {
+        width: 100%;
+    }
+
+    .tb-pill {
+        padding: 0;
+        height: 28px;
+        width: 28px;
+        font-size: 11px;
+        justify-content: center;
+    }
+
+    .tb-pill span {
+        display: none;
+    }
+
+    .tb-pill svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    /* Log output adjustments */
+    .log-line {
+        padding: 2px 8px;
+        font-size: 11px;
+    }
+
+    .ll-lnum {
+        min-width: 28px;
+        padding-right: 8px;
+        margin-right: 8px;
+        font-size: 9px;
+    }
+
+    .ll-badge {
+        min-width: 28px;
+        margin-right: 8px;
+    }
+
+    .ll-badge span {
+        font-size: 8px;
+        padding: 1px 4px;
+    }
+
+    .ll-text {
+        font-size: 11px;
+    }
+
+    /* Footer */
+    footer {
+        padding: 0 10px;
+        flex-wrap: wrap;
+        height: auto;
+        min-height: var(--footer-h);
+        padding: 4px 10px;
+    }
+
+    .sb-item {
+        font-size: 10px;
+        padding-right: 10px;
+        margin-right: 10px;
+    }
+
+    .sb-item:nth-child(n + 3) {
+        display: none;
+    }
+
+    /* Empty state */
+    .empty-state {
+        padding: 20px;
+    }
+
+    .empty-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 12px;
+    }
+
+    .empty-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .empty-title {
+        font-size: 14px;
+    }
+
+    .empty-sub {
+        font-size: 12px;
+    }
+
+    /* Scroll button */
+    #scrollBtn {
+        bottom: 10px;
+        right: 10px;
+        height: 28px;
+        padding: 0 10px;
+        font-size: 11px;
+    }
+}
+
+/* Responsive: Small mobile (max-width: 480px) */
+@media (max-width: 480px) {
+    header {
+        padding: 0 10px;
+    }
+
+    .logo {
+        padding-right: 8px;
+        margin-right: 8px;
+    }
+
+    .logo-mark {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+    }
+
+    .logo-mark svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .logo-name {
+        font-size: 13px;
+    }
+
+    .hdr-btn {
+        height: 30px;
+        padding: 0 8px;
+    }
+
+    .hdr-btn svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    .menu-toggle {
+        width: 32px;
+        height: 32px;
+        margin-right: 8px;
+    }
+
+    .toolbar {
+        padding: 6px 8px;
+    }
+
+    .action-btn {
+        width: 26px;
+        height: 26px;
+    }
+
+    .tb-pill {
+        width: 26px;
+        height: 26px;
+    }
+
+    .log-line {
+        padding: 2px 6px;
+    }
+
+    .ll-lnum {
+        display: none;
+    }
+
+    .ll-badge {
+        min-width: 24px;
+        margin-right: 6px;
+    }
+
+    footer {
+        justify-content: center;
+    }
+
+    .sb-item {
+        border-right: none;
+        margin-right: 8px;
+        padding-right: 0;
+    }
+
+    .sb-end {
+        display: none;
+    }
+}
