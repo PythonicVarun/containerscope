@@ -71,21 +71,17 @@
             <div class="hdr-right">
                 <button class="hdr-btn" id="refreshBtn" type="button">
                     <svg
-                        viewBox="0 0 14 14"
+                        viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
-                        stroke-width="1.5"
+                        stroke-width="2"
                         aria-hidden="true"
                     >
                         <path
-                            d="M1 7A6 6 0 1 0 7 1"
-                            stroke-linecap="round"
-                        ></path>
-                        <polyline
-                            points="1,1 1,7 7,7"
+                            d="M19 13.5C19 17.6421 15.6421 21 11.5 21C7.35786 21 4 17.6421 4 13.5C4 9.35786 7.35786 6 11.5 6H20M20 6L17 3M20 6L17 9"
                             stroke-linecap="round"
                             stroke-linejoin="round"
-                        ></polyline>
+                        ></path>
                     </svg>
                     Refresh
                 </button>
@@ -160,6 +156,62 @@
                         <div class="toolbar-title">
                             <span class="toolbar-name" id="tbName">-</span>
                             <span class="toolbar-cid" id="tbId"></span>
+                        </div>
+                        <div class="container-actions" id="containerActions">
+                            <button
+                                class="action-btn start"
+                                id="startBtn"
+                                type="button"
+                                title="Start container"
+                            >
+                                <svg
+                                    viewBox="0 0 12 12"
+                                    fill="currentColor"
+                                    aria-hidden="true"
+                                >
+                                    <polygon points="2,1 11,6 2,11"></polygon>
+                                </svg>
+                            </button>
+                            <button
+                                class="action-btn stop"
+                                id="stopBtn"
+                                type="button"
+                                title="Stop container"
+                            >
+                                <svg
+                                    viewBox="0 0 12 12"
+                                    fill="currentColor"
+                                    aria-hidden="true"
+                                >
+                                    <rect
+                                        x="1"
+                                        y="1"
+                                        width="10"
+                                        height="10"
+                                        rx="1"
+                                    ></rect>
+                                </svg>
+                            </button>
+                            <button
+                                class="action-btn restart"
+                                id="restartBtn"
+                                type="button"
+                                title="Restart container"
+                            >
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    aria-hidden="true"
+                                >
+                                    <path
+                                        d="M19 13.5C19 17.6421 15.6421 21 11.5 21C7.35786 21 4 17.6421 4 13.5C4 9.35786 7.35786 6 11.5 6H20M20 6L17 3M20 6L17 9"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    ></path>
+                                </svg>
+                            </button>
                         </div>
                         <div class="spinner" id="spinner"></div>
                         <div class="tb-spacer"></div>

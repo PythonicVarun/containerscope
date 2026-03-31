@@ -3,6 +3,7 @@
         ws: null,
         allLogs: [],
         activeId: null,
+        activeName: null,
         showStderr: true,
         autoFollow: true,
         filterText: "",
@@ -34,11 +35,14 @@
         elements.nodeCount = document.getElementById("nodeCount");
         elements.activeView = document.getElementById("activeView");
         elements.refreshBtn = document.getElementById("refreshBtn");
+        elements.restartBtn = document.getElementById("restartBtn");
         elements.sbContainer = document.getElementById("sbContainer");
         elements.sbContName = document.getElementById("sbContName");
         elements.sbLines = document.getElementById("sbLines");
         elements.scrollBtn = document.getElementById("scrollBtn");
         elements.spinner = document.getElementById("spinner");
+        elements.startBtn = document.getElementById("startBtn");
+        elements.stopBtn = document.getElementById("stopBtn");
         elements.tbId = document.getElementById("tbId");
         elements.tbName = document.getElementById("tbName");
         elements.wsDot = document.getElementById("wsDot");
@@ -54,6 +58,15 @@
         elements.logOut.addEventListener("scroll", handleLogScroll);
         elements.refreshBtn.addEventListener("click", loadContainers);
         elements.scrollBtn.addEventListener("click", scrollToBottom);
+        elements.startBtn.addEventListener("click", () =>
+            containerAction("start"),
+        );
+        elements.stopBtn.addEventListener("click", () =>
+            containerAction("stop"),
+        );
+        elements.restartBtn.addEventListener("click", () =>
+            containerAction("restart"),
+        );
     }
 
     function connectWS() {
@@ -149,6 +162,7 @@
 
     async function selectContainer(id, name) {
         state.activeId = id;
+        state.activeName = name;
         state.allLogs = [];
         state.lineIndex = 0;
 
@@ -188,6 +202,41 @@
             if (state.autoFollow) {
                 scrollToBottom();
             }
+        }
+    }
+
+    async function containerAction(action) {
+        if (!state.activeId) {
+            return;
+        }
+
+        const buttonMap = {
+            start: elements.startBtn,
+            stop: elements.stopBtn,
+            restart: elements.restartBtn,
+        };
+
+        const button = buttonMap[action];
+        if (!button || button.disabled) {
+            return;
+        }
+
+        button.classList.add("loading");
+        button.disabled = true;
+
+        try {
+            await fetch(`/api/containers/${state.activeId}/${action}`, {
+                method: "POST",
+            });
+            await loadContainers();
+            if (action === "restart" && state.activeId) {
+                selectContainer(state.activeId, state.activeName);
+            }
+        } catch (error) {
+            console.error(`Failed to ${action} container:`, error);
+        } finally {
+            button.classList.remove("loading");
+            button.disabled = false;
         }
     }
 

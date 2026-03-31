@@ -35,6 +35,42 @@ func NewHandler(publicDir string, docker *dockerapi.Client) http.Handler {
 		writeJSON(w, http.StatusOK, containers)
 	})
 
+	mux.HandleFunc("/api/containers/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		path := strings.TrimPrefix(r.URL.Path, "/api/containers/")
+		parts := strings.SplitN(path, "/", 2)
+		if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+			http.NotFound(w, r)
+			return
+		}
+
+		id, action := parts[0], parts[1]
+		var err error
+
+		switch action {
+		case "start":
+			err = docker.StartContainer(r.Context(), id)
+		case "stop":
+			err = docker.StopContainer(r.Context(), id)
+		case "restart":
+			err = docker.RestartContainer(r.Context(), id)
+		default:
+			http.NotFound(w, r)
+			return
+		}
+
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	})
+
 	mux.HandleFunc("/api/logs/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)

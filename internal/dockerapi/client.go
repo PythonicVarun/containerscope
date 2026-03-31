@@ -66,7 +66,7 @@ func NewClient(socketPath string) *Client {
 
 func (c *Client) ListContainers(ctx context.Context) ([]Container, error) {
 	req, err := c.newRequest(ctx, http.MethodGet, "/containers/json", url.Values{
-		"all": []string{"0"},
+		"all": []string{"1"},
 	})
 	if err != nil {
 		return nil, err
@@ -100,6 +100,37 @@ func (c *Client) ListContainers(ctx context.Context) ([]Container, error) {
 	}
 
 	return result, nil
+}
+
+func (c *Client) StartContainer(ctx context.Context, id string) error {
+	return c.containerAction(ctx, id, "start")
+}
+
+func (c *Client) StopContainer(ctx context.Context, id string) error {
+	return c.containerAction(ctx, id, "stop")
+}
+
+func (c *Client) RestartContainer(ctx context.Context, id string) error {
+	return c.containerAction(ctx, id, "restart")
+}
+
+func (c *Client) containerAction(ctx context.Context, id, action string) error {
+	req, err := c.newRequestWithBody(ctx, http.MethodPost, "/containers/"+id+"/"+action, nil, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		return dockerError(resp)
+	}
+
+	return nil
 }
 
 func (c *Client) OpenLogs(ctx context.Context, id string, tail int, follow bool) (*LogStream, error) {
@@ -164,6 +195,10 @@ func (c *Client) containerTTY(ctx context.Context, id string) (bool, error) {
 }
 
 func (c *Client) newRequest(ctx context.Context, method, path string, query url.Values) (*http.Request, error) {
+	return c.newRequestWithBody(ctx, method, path, query, nil)
+}
+
+func (c *Client) newRequestWithBody(ctx context.Context, method, path string, query url.Values, body io.Reader) (*http.Request, error) {
 	u := &url.URL{
 		Scheme:   "http",
 		Host:     "docker",
@@ -171,7 +206,7 @@ func (c *Client) newRequest(ctx context.Context, method, path string, query url.
 		RawQuery: query.Encode(),
 	}
 
-	return http.NewRequestWithContext(ctx, method, u.String(), nil)
+	return http.NewRequestWithContext(ctx, method, u.String(), body)
 }
 
 func dockerError(resp *http.Response) error {
