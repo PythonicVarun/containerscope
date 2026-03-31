@@ -24,8 +24,23 @@
         cacheElements();
         bindEvents();
         connectWS();
-        loadContainers();
+        await loadContainers();
+        restoreFromHash();
         window.setInterval(loadContainers, 15000);
+        window.addEventListener("hashchange", restoreFromHash);
+    }
+
+    function restoreFromHash() {
+        const hash = window.location.hash.slice(1);
+        if (!hash || hash === state.activeId) return;
+
+        const item = document.querySelector(
+            `.c-item[data-id="${CSS.escape(hash)}"]`,
+        );
+        if (item) {
+            const name = item.querySelector(".c-name")?.textContent || "";
+            selectContainer(hash, name);
+        }
     }
 
     async function checkAuth() {
@@ -213,6 +228,9 @@
         state.activeName = name;
         state.allLogs = [];
         state.lineIndex = 0;
+
+        // Update URL hash for persistence
+        history.replaceState(null, "", `#${id}`);
 
         document.querySelectorAll(".c-item").forEach((item) => {
             item.classList.toggle("active", item.dataset.id === id);
