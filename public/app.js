@@ -362,10 +362,12 @@
 
         state.shellWs.onclose = () => {
             state.xterm.write("\r\n\x1b[33mConnection closed.\x1b[0m\r\n");
+            state.xterm.write("\x1b[?25l"); // Hide cursor using ANSI escape
         };
 
         state.shellWs.onerror = () => {
             state.xterm.write("\r\n\x1b[31mWebSocket error.\x1b[0m\r\n");
+            state.xterm.write("\x1b[?25l"); // Hide cursor using ANSI escape
         };
 
         // Forward keyboard input to WebSocket
