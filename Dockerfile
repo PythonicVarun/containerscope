@@ -5,8 +5,13 @@ WORKDIR /src
 COPY go.mod go.sum ./
 COPY cmd ./cmd
 COPY internal ./internal
-COPY public ./public
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/containerscope ./cmd/containerscope
+
+FROM alpine:latest AS minify
+RUN apk add --no-cache minify
+WORKDIR /assets
+COPY public ./public
+RUN find public -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" \) -exec minify -o {} {} \;
 
 FROM scratch
 ARG VERSION=dev
@@ -24,6 +29,6 @@ ENV CONTAINER_SCOPE_PORT=4000
 ENV CONTAINER_SCOPE_USERNAME=admin
 # CONTAINER_SCOPE_PASSWORD must be set at runtime
 COPY --from=build /out/containerscope /app/containerscope
-COPY public /app/public
+COPY --from=minify /assets/public /app/public
 EXPOSE 4000
 CMD ["/app/containerscope"]
