@@ -23,7 +23,11 @@ type loginRequest struct {
 	Password string `json:"password"`
 }
 
-func NewHandler(publicDir string, docker *dockerapi.Client, authManager *auth.Manager, rateLimiter *auth.RateLimiter, secureCookies bool) http.Handler {
+type shellRequest struct {
+	Password string `json:"password"`
+}
+
+func NewHandler(publicDir string, docker *dockerapi.Client, authManager *auth.Manager, rateLimiter *auth.RateLimiter, secureCookies bool, socketPath string) http.Handler {
 	fileServer := http.FileServer(http.Dir(publicDir))
 	mux := http.NewServeMux()
 
@@ -107,42 +111,6 @@ func NewHandler(publicDir string, docker *dockerapi.Client, authManager *auth.Ma
 		writeJSON(w, http.StatusOK, containers)
 	}))
 
-	mux.HandleFunc("/api/containers/", authManager.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		path := strings.TrimPrefix(r.URL.Path, "/api/containers/")
-		parts := strings.SplitN(path, "/", 2)
-		if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-			http.NotFound(w, r)
-			return
-		}
-
-		id, action := parts[0], parts[1]
-		var err error
-
-		switch action {
-		case "start":
-			err = docker.StartContainer(r.Context(), id)
-		case "stop":
-			err = docker.StopContainer(r.Context(), id)
-		case "restart":
-			err = docker.RestartContainer(r.Context(), id)
-		default:
-			http.NotFound(w, r)
-			return
-		}
-
-		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-			return
-		}
-
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-	}))
-
 	mux.HandleFunc("/api/logs/", authManager.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -188,6 +156,112 @@ func NewHandler(publicDir string, docker *dockerapi.Client, authManager *auth.Ma
 		}
 
 		ws.NewSession(conn, docker).Run()
+	})
+
+	// Shell WebSocket endpoint (protected, requires password re-verification)
+	mux.HandleFunc("/api/containers/", authManager.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/api/containers/")
+		parts := strings.SplitN(path, "/", 2)
+
+		if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+			http.NotFound(w, r)
+			return
+		}
+
+		id, action := parts[0], parts[1]
+
+		// Handle shell action separately
+		if action == "shell" {
+			if r.Method != http.MethodPost {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+
+			var req shellRequest
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				http.Error(w, "invalid request body", http.StatusBadRequest)
+				return
+			}
+
+			// Create shell session (verifies password internally)
+			shellToken, err := authManager.CreateShellSession(id, req.Password)
+			if err != nil {
+				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid password"})
+				return
+			}
+
+			// Return the shell token for WebSocket connection
+			writeJSON(w, http.StatusOK, map[string]string{
+				"status":      "ok",
+				"containerId": id,
+				"shellToken":  shellToken,
+			})
+			return
+		}
+
+		// Handle other container actions
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var err error
+		switch action {
+		case "start":
+			err = docker.StartContainer(r.Context(), id)
+		case "stop":
+			err = docker.StopContainer(r.Context(), id)
+		case "restart":
+			err = docker.RestartContainer(r.Context(), id)
+		default:
+			http.NotFound(w, r)
+			return
+		}
+
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	}))
+
+	// Shell WebSocket endpoint
+	mux.HandleFunc("/ws/shell/", func(w http.ResponseWriter, r *http.Request) {
+		// Validate main session first
+		if _, err := authManager.GetSessionFromRequest(r); err != nil {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// Extract shell token from query parameter
+		shellToken := r.URL.Query().Get("token")
+		if shellToken == "" {
+			http.Error(w, "shell token required", http.StatusBadRequest)
+			return
+		}
+
+		// Validate and consume shell token (single-use)
+		containerID, err := authManager.ValidateAndConsumeShellSession(shellToken)
+		if err != nil {
+			http.Error(w, "invalid or expired shell token", http.StatusUnauthorized)
+			return
+		}
+
+		// Verify the container ID in the URL matches the token's container ID
+		urlContainerID := strings.TrimPrefix(r.URL.Path, "/ws/shell/")
+		if urlContainerID != containerID {
+			http.Error(w, "container ID mismatch", http.StatusForbidden)
+			return
+		}
+
+		conn, err := ws.Upgrade(w, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		ws.NewShellSession(conn, docker, socketPath).Run(containerID)
 	})
 
 	// Static files and login page

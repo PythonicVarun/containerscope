@@ -39,7 +39,7 @@ func NewServer(cfg Config) (*http.Server, error) {
 
 	return &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           NewHandler(cfg.PublicDir, docker, authManager, rateLimiter, cfg.SecureCookies),
+		Handler:           NewHandler(cfg.PublicDir, docker, authManager, rateLimiter, cfg.SecureCookies, cfg.DockerSocketPath),
 		ReadHeaderTimeout: 5 * time.Second,
 	}, nil
 }

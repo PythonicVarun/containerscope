@@ -1,6 +1,7 @@
 (function () {
     const state = {
         ws: null,
+        shellWs: null,
         allLogs: [],
         activeId: null,
         activeName: null,
@@ -95,6 +96,26 @@
         elements.modalMessage = document.getElementById("modalMessage");
         elements.modalCancel = document.getElementById("modalCancel");
         elements.modalConfirm = document.getElementById("modalConfirm");
+
+        // Shell elements
+        elements.shellBtn = document.getElementById("shellBtn");
+        elements.shellPasswordModal =
+            document.getElementById("shellPasswordModal");
+        elements.shellPasswordInput =
+            document.getElementById("shellPasswordInput");
+        elements.shellError = document.getElementById("shellError");
+        elements.shellPasswordCancel = document.getElementById(
+            "shellPasswordCancel",
+        );
+        elements.shellPasswordConfirm = document.getElementById(
+            "shellPasswordConfirm",
+        );
+        elements.shellTerminalModal =
+            document.getElementById("shellTerminalModal");
+        elements.shellTerminal = document.getElementById("shellTerminal");
+        elements.shellCloseBtn = document.getElementById("shellCloseBtn");
+        elements.shellContainerName =
+            document.getElementById("shellContainerName");
     }
 
     function bindEvents() {
@@ -124,6 +145,28 @@
         elements.modalCancel.addEventListener("click", closeModal);
         elements.confirmModal.addEventListener("click", (e) => {
             if (e.target === elements.confirmModal) closeModal();
+        });
+
+        // Shell events
+        elements.shellBtn.addEventListener("click", openShellPasswordDialog);
+        elements.shellPasswordCancel.addEventListener(
+            "click",
+            closeShellPasswordDialog,
+        );
+        elements.shellPasswordModal.addEventListener("click", (e) => {
+            if (e.target === elements.shellPasswordModal)
+                closeShellPasswordDialog();
+        });
+        elements.shellPasswordConfirm.addEventListener(
+            "click",
+            verifyShellPassword,
+        );
+        elements.shellPasswordInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") verifyShellPassword();
+        });
+        elements.shellCloseBtn.addEventListener("click", closeShellTerminal);
+        elements.shellTerminalModal.addEventListener("click", (e) => {
+            if (e.target === elements.shellTerminalModal) closeShellTerminal();
         });
     }
 
@@ -189,6 +232,194 @@
     function closeModal() {
         elements.confirmModal.classList.remove("visible");
         pendingAction = null;
+    }
+
+    // Shell dialog functions
+    function openShellPasswordDialog() {
+        if (!state.activeId) return;
+        elements.shellPasswordInput.value = "";
+        elements.shellError.textContent = "";
+        elements.shellPasswordModal.classList.add("visible");
+        elements.shellPasswordInput.focus();
+    }
+
+    function closeShellPasswordDialog() {
+        elements.shellPasswordModal.classList.remove("visible");
+        elements.shellPasswordInput.value = "";
+        elements.shellError.textContent = "";
+    }
+
+    async function verifyShellPassword() {
+        const password = elements.shellPasswordInput.value;
+        if (!password) {
+            elements.shellError.textContent = "Password is required";
+            return;
+        }
+
+        elements.shellError.textContent = "";
+        elements.shellPasswordConfirm.disabled = true;
+        elements.shellPasswordConfirm.textContent = "Connecting...";
+
+        try {
+            const response = await fetch(
+                `/api/containers/${state.activeId}/shell`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ password }),
+                },
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                elements.shellError.textContent =
+                    data.error || "Invalid password";
+                return;
+            }
+
+            // Password verified, open shell terminal with the token
+            closeShellPasswordDialog();
+            openShellTerminal(data.shellToken);
+        } catch (error) {
+            elements.shellError.textContent =
+                "Connection failed: " + error.message;
+        } finally {
+            elements.shellPasswordConfirm.disabled = false;
+            elements.shellPasswordConfirm.textContent = "Connect";
+        }
+    }
+
+    function openShellTerminal(shellToken) {
+        elements.shellContainerName.textContent =
+            state.activeName || state.activeId;
+        elements.shellTerminal.innerHTML = "";
+        elements.shellTerminalModal.classList.add("visible");
+
+        // Create xterm.js terminal
+        state.xterm = new Terminal({
+            cursorBlink: true,
+            fontSize: 14,
+            fontFamily: "'JetBrains Mono', 'Consolas', monospace",
+            theme: {
+                background: "#1a1a2e",
+                foreground: "#e5e5e5",
+                cursor: "#e5e5e5",
+                selectionBackground: "rgba(255, 255, 255, 0.3)",
+                black: "#000000",
+                red: "#cd0000",
+                green: "#00cd00",
+                yellow: "#cdcd00",
+                blue: "#0000ee",
+                magenta: "#cd00cd",
+                cyan: "#00cdcd",
+                white: "#e5e5e5",
+                brightBlack: "#7f7f7f",
+                brightRed: "#ff0000",
+                brightGreen: "#00ff00",
+                brightYellow: "#ffff00",
+                brightBlue: "#5c5cff",
+                brightMagenta: "#ff00ff",
+                brightCyan: "#00ffff",
+                brightWhite: "#ffffff",
+            },
+        });
+
+        const fitAddon = new FitAddon.FitAddon();
+        state.xtermFitAddon = fitAddon;
+        state.xterm.loadAddon(fitAddon);
+        state.xterm.open(elements.shellTerminal);
+
+        // Fit terminal to container
+        setTimeout(() => {
+            fitAddon.fit();
+        }, 10);
+
+        // Connect to shell WebSocket with token
+        const proto = window.location.protocol === "https:" ? "wss" : "ws";
+        const wsUrl = `${proto}://${window.location.host}/ws/shell/${state.activeId}?token=${encodeURIComponent(shellToken)}`;
+        state.shellWs = new WebSocket(wsUrl);
+
+        state.shellWs.onopen = () => {
+            // Send initial terminal size
+            sendShellResize();
+        };
+
+        state.shellWs.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                if (msg.error) {
+                    state.xterm.write(
+                        "\r\n\x1b[31mError: " + msg.error + "\x1b[0m\r\n",
+                    );
+                } else if (msg.type === "output") {
+                    state.xterm.write(msg.data);
+                }
+            } catch (e) {
+                state.xterm.write(event.data);
+            }
+        };
+
+        state.shellWs.onclose = () => {
+            state.xterm.write("\r\n\x1b[33mConnection closed.\x1b[0m\r\n");
+        };
+
+        state.shellWs.onerror = () => {
+            state.xterm.write("\r\n\x1b[31mWebSocket error.\x1b[0m\r\n");
+        };
+
+        // Forward keyboard input to WebSocket
+        state.xterm.onData((data) => {
+            if (state.shellWs && state.shellWs.readyState === WebSocket.OPEN) {
+                state.shellWs.send(data);
+            }
+        });
+
+        // Handle window resize
+        state.resizeHandler = () => {
+            if (state.xtermFitAddon) {
+                state.xtermFitAddon.fit();
+                sendShellResize();
+            }
+        };
+        window.addEventListener("resize", state.resizeHandler);
+
+        // Focus terminal
+        state.xterm.focus();
+    }
+
+    function sendShellResize() {
+        if (
+            state.shellWs &&
+            state.shellWs.readyState === WebSocket.OPEN &&
+            state.xterm
+        ) {
+            state.shellWs.send(
+                JSON.stringify({
+                    type: "resize",
+                    width: state.xterm.cols,
+                    height: state.xterm.rows,
+                }),
+            );
+        }
+    }
+
+    function closeShellTerminal() {
+        elements.shellTerminalModal.classList.remove("visible");
+        if (state.resizeHandler) {
+            window.removeEventListener("resize", state.resizeHandler);
+            state.resizeHandler = null;
+        }
+        if (state.shellWs) {
+            state.shellWs.close();
+            state.shellWs = null;
+        }
+        if (state.xterm) {
+            state.xterm.dispose();
+            state.xterm = null;
+            state.xtermFitAddon = null;
+        }
+        elements.shellTerminal.innerHTML = "";
     }
 
     function toggleSidebar() {

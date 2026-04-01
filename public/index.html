@@ -11,6 +11,10 @@
             href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap"
             rel="stylesheet"
         />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css"
+        />
         <link rel="stylesheet" href="/styles.css" />
     </head>
     <body>
@@ -265,6 +269,33 @@
                                     ></path>
                                 </svg>
                             </button>
+                            <button
+                                class="action-btn shell"
+                                id="shellBtn"
+                                type="button"
+                                title="Open shell"
+                            >
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    aria-hidden="true"
+                                >
+                                    <polyline
+                                        points="4,17 10,11 4,5"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    ></polyline>
+                                    <line
+                                        x1="12"
+                                        y1="19"
+                                        x2="20"
+                                        y2="19"
+                                        stroke-linecap="round"
+                                    ></line>
+                                </svg>
+                            </button>
                         </div>
                         <div class="spinner" id="spinner"></div>
                         <div class="tb-spacer"></div>
@@ -425,6 +456,136 @@
             </div>
         </div>
 
+        <!-- Shell Password Dialog -->
+        <div class="modal-overlay" id="shellPasswordModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <span class="modal-icon shell">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <polyline
+                                points="4,17 10,11 4,5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            ></polyline>
+                            <line
+                                x1="12"
+                                y1="19"
+                                x2="20"
+                                y2="19"
+                                stroke-linecap="round"
+                            ></line>
+                        </svg>
+                    </span>
+                    <h3 class="modal-title">Connect to Shell</h3>
+                </div>
+                <p class="modal-message">
+                    Enter your password to connect to the container shell.
+                </p>
+                <div class="shell-password-input">
+                    <input
+                        type="password"
+                        id="shellPasswordInput"
+                        class="password-field"
+                        placeholder="Enter password"
+                        autocomplete="current-password"
+                    />
+                    <p class="shell-error" id="shellError"></p>
+                </div>
+                <div class="modal-actions">
+                    <button
+                        class="modal-btn cancel"
+                        id="shellPasswordCancel"
+                        type="button"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        class="modal-btn confirm shell-confirm"
+                        id="shellPasswordConfirm"
+                        type="button"
+                    >
+                        Connect
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shell Terminal Modal -->
+        <div
+            class="modal-overlay shell-terminal-overlay"
+            id="shellTerminalModal"
+        >
+            <div class="shell-terminal-container">
+                <div class="shell-terminal-header">
+                    <div class="shell-terminal-title">
+                        <span class="shell-icon">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <polyline
+                                    points="4,17 10,11 4,5"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                ></polyline>
+                                <line
+                                    x1="12"
+                                    y1="19"
+                                    x2="20"
+                                    y2="19"
+                                    stroke-linecap="round"
+                                ></line>
+                            </svg>
+                        </span>
+                        <span id="shellContainerName">Container Shell</span>
+                    </div>
+                    <div class="shell-terminal-hints">
+                        <span class="hint">Ctrl+C</span>
+                        <span class="hint">Ctrl+D</span>
+                        <span class="hint">Tab</span>
+                    </div>
+                    <button
+                        class="shell-close-btn"
+                        id="shellCloseBtn"
+                        type="button"
+                        title="Close shell"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <line
+                                x1="18"
+                                y1="6"
+                                x2="6"
+                                y2="18"
+                                stroke-linecap="round"
+                            ></line>
+                            <line
+                                x1="6"
+                                y1="6"
+                                x2="18"
+                                y2="18"
+                                stroke-linecap="round"
+                            ></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="shell-terminal-body" id="shellTerminal"></div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
         <script src="/app.js"></script>
     </body>
 </html>
